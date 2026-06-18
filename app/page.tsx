@@ -1,79 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
-import { Session, Player, Match } from "@/lib/types";
+import { api, DashStats } from "@/lib/api";
 import { formatDateShort } from "@/lib/utils";
 
-interface DashStats {
-  totalSessions: number;
-  totalPlayers: number;
-  totalMatches: number;
-  recentSessions: Session[];
-  topPlayer: Player | null;
-}
-
 export default function HomePage() {
-  const [stats, setStats] = useState<DashStats>({
-    totalSessions: 0,
-    totalPlayers: 0,
-    totalMatches: 0,
-    recentSessions: [],
-    topPlayer: null,
-  });
+  const [stats, setStats] = useState<DashStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function load() {
-      const [
-        { count: sCount },
-        { count: pCount },
-        { count: mCount },
-        { data: sessions },
-        { data: matches },
-        { data: players },
-      ] = await Promise.all([
-        supabase.from("sessions").select("*", { count: "exact", head: true }),
-        supabase.from("players").select("*", { count: "exact", head: true }),
-        supabase.from("matches").select("*", { count: "exact", head: true }).eq("status", "completed"),
-        supabase
-          .from("sessions")
-          .select("*")
-          .order("date", { ascending: false })
-          .limit(5),
-        supabase.from("matches").select("*").eq("status", "completed"),
-        supabase.from("players").select("*"),
-      ]);
-
-      // Compute top player by wins
-      let topPlayer: Player | null = null;
-      if (matches && players) {
-        const winMap = new Map<string, number>();
-        (matches as Match[]).forEach((m) => {
-          const t1 = [m.team1_player1_id, m.team1_player2_id].filter(Boolean) as string[];
-          const t2 = [m.team2_player1_id, m.team2_player2_id].filter(Boolean) as string[];
-          if (m.winner_team === 1) t1.forEach((id) => winMap.set(id, (winMap.get(id) ?? 0) + 1));
-          if (m.winner_team === 2) t2.forEach((id) => winMap.set(id, (winMap.get(id) ?? 0) + 1));
-        });
-        let maxWins = 0;
-        let topId: string | null = null;
-        winMap.forEach((wins, id) => { if (wins > maxWins) { maxWins = wins; topId = id; } });
-        topPlayer = (players as Player[]).find((p) => p.id === topId) ?? null;
-      }
-
-      setStats({
-        totalSessions: sCount ?? 0,
-        totalPlayers: pCount ?? 0,
-        totalMatches: mCount ?? 0,
-        recentSessions: (sessions as Session[]) ?? [],
-        topPlayer,
-      });
-      setLoading(false);
-    }
-    load();
+    api.stats.get().then((s) => { setStats(s); setLoading(false); });
   }, []);
 
-  const activeSession = stats.recentSessions.find((s) => s.status === "active");
+  const activeSession = stats?.recentSessions.find((s) => s.status === "active");
 
   if (loading) {
     return (
@@ -117,9 +56,9 @@ export default function HomePage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Sesi", value: stats.totalSessions, icon: "📅" },
-          { label: "Pemain", value: stats.totalPlayers, icon: "👥" },
-          { label: "Match", value: stats.totalMatches, icon: "🎯" },
+          { label: "Sesi", value: stats?.totalSessions ?? 0, icon: "📅" },
+          { label: "Pemain", value: stats?.totalPlayers ?? 0, icon: "👥" },
+          { label: "Match", value: stats?.totalMatches ?? 0, icon: "🎯" },
         ].map((s) => (
           <div key={s.label} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 text-center">
             <p className="text-2xl mb-1">{s.icon}</p>
@@ -130,7 +69,7 @@ export default function HomePage() {
       </div>
 
       {/* Top player */}
-      {stats.topPlayer && (
+      {stats?.topPlayer && (
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-4">
           <span className="text-4xl">🥇</span>
           <div>
@@ -148,14 +87,11 @@ export default function HomePage() {
             Lihat semua →
           </Link>
         </div>
-        {stats.recentSessions.length === 0 ? (
+        {!stats?.recentSessions.length ? (
           <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-slate-100">
             <p className="text-4xl mb-3">🏸</p>
             <p className="text-slate-500 text-sm">Belum ada sesi.</p>
-            <Link
-              href="/sessions/new"
-              className="mt-3 inline-block text-primary-600 font-semibold text-sm"
-            >
+            <Link href="/sessions/new" className="mt-3 inline-block text-primary-600 font-semibold text-sm">
               Buat sesi pertamamu →
             </Link>
           </div>
@@ -168,13 +104,7 @@ export default function HomePage() {
                     <p className="font-semibold text-slate-800 text-sm">{formatDateShort(s.date)}</p>
                     {s.location && <p className="text-xs text-slate-400 mt-0.5">{s.location}</p>}
                   </div>
-                  <span
-                    className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                      s.status === "active"
-                        ? "bg-shuttle-400/20 text-yellow-700"
-                        : "bg-primary-100 text-primary-800"
-                    }`}
-                  >
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${s.status === "active" ? "bg-shuttle-400/20 text-yellow-700" : "bg-primary-100 text-primary-800"}`}>
                     {s.status === "active" ? "Aktif" : "Selesai"}
                   </span>
                 </div>
