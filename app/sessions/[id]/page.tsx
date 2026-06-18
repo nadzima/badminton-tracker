@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, SessionDetail } from "@/lib/api";
 import { Player, Match } from "@/lib/types";
@@ -8,6 +8,7 @@ import MatchCard from "@/components/MatchCard";
 import RankingTable from "@/components/RankingTable";
 import AddMatchModal from "@/components/AddMatchModal";
 import PlayerCombobox from "@/components/PlayerCombobox";
+import { downloadAsJpeg } from "@/lib/download";
 
 type Tab = "matches" | "ranking" | "players";
 
@@ -25,6 +26,8 @@ export default function SessionDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState("");
+  const rankingRef = useRef<HTMLDivElement>(null);
+  const matchHistoryRef = useRef<HTMLDivElement>(null);
 
   const reload = useCallback(async () => {
     const d = await api.sessions.get(id);
@@ -103,6 +106,16 @@ export default function SessionDetailPage() {
   const handleReopen = async () => {
     await api.sessions.update(id, { status: "active" });
     await reload();
+  };
+
+  const handleDownloadRanking = async () => {
+    if (!rankingRef.current) return;
+    await downloadAsJpeg(rankingRef.current, `ranking-${session.date}.jpg`);
+  };
+
+  const handleDownloadMatchHistory = async () => {
+    if (!matchHistoryRef.current) return;
+    await downloadAsJpeg(matchHistoryRef.current, `match-history-${session.date}.jpg`);
   };
 
   const handleDeleteSession = async () => {
@@ -248,6 +261,13 @@ export default function SessionDetailPage() {
       {/* Tab: Matches */}
       {tab === "matches" && (
         <div className="space-y-3">
+          <div className="flex justify-end">
+            <button onClick={handleDownloadMatchHistory}
+              className="text-xs text-slate-500 hover:text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
+              ⬇ Download JPG
+            </button>
+          </div>
+          <div ref={matchHistoryRef} className="space-y-3 bg-slate-50 rounded-2xl p-3">
           {matches.length === 0 ? (
             <div className="bg-white rounded-2xl p-10 text-center shadow-sm border border-slate-100">
               <p className="text-4xl mb-3">🎯</p>
@@ -259,6 +279,7 @@ export default function SessionDetailPage() {
               <MatchCard key={m.id} match={m} players={allPlayers} onScoreSubmit={handleScoreSubmit} onDelete={handleDeleteMatch} sessionStatus={session.status} />
             ))
           )}
+          </div>
           {isActive && matches.length > 0 && (
             <button onClick={() => setShowAddMatch(true)}
               className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 text-sm font-medium hover:border-primary-400 hover:text-primary-600 transition-colors">
@@ -273,15 +294,24 @@ export default function SessionDetailPage() {
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-bold text-slate-800">Ranking Sesi</h2>
-            <span className="text-xs text-slate-400">{completedMatches} match selesai</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">{completedMatches} match selesai</span>
+              <button onClick={handleDownloadRanking}
+                className="text-xs text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
+                ⬇ JPG
+              </button>
+            </div>
           </div>
           {completedMatches === 0 ? (
             <div className="text-center py-8"><p className="text-3xl mb-2">📊</p><p className="text-slate-400 text-sm">Ranking akan muncul setelah ada match yang selesai</p></div>
           ) : (
             <>
-              <RankingTable rankings={rankings} />
-              <div className="mt-4 pt-4 border-t border-slate-100">
-                <p className="text-xs text-slate-400">Poin: Menang = 2, Kalah = 0 | Tiebreaker: selisih skor</p>
+              <div ref={rankingRef} className="bg-white rounded-xl p-2">
+                <p className="text-sm font-bold text-slate-700 mb-3">
+                  Ranking Sesi · {session.date}
+                  {session.location ? ` · ${session.location}` : ""}
+                </p>
+                <RankingTable rankings={rankings} />
               </div>
             </>
           )}

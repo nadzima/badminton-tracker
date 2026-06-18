@@ -173,6 +173,7 @@ export function calcSessionRankings(
       pointsScored: 0,
       pointsConceded: 0,
       rankPoints: 0,
+      rankScore: 0,
       winRate: 0,
       pointDiff: 0,
     });
@@ -210,11 +211,12 @@ export function calcSessionRankings(
     ...s,
     winRate: s.gamesPlayed > 0 ? s.wins / s.gamesPlayed : 0,
     pointDiff: s.pointsScored - s.pointsConceded,
+    rankScore: s.wins * 0.5 + (s.pointsScored - s.pointsConceded) * 0.5,
   }));
 
   arr.sort((a, b) => {
-    if (b.rankPoints !== a.rankPoints) return b.rankPoints - a.rankPoints;
-    if (b.pointDiff !== a.pointDiff) return b.pointDiff - a.pointDiff;
+    if (b.rankScore !== a.rankScore) return b.rankScore - a.rankScore;
+    if (b.wins !== a.wins) return b.wins - a.wins;
     return b.pointsScored - a.pointsScored;
   });
 

@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { api } from "@/lib/api";
 import { Player, Match, PlayerRankStats } from "@/lib/types";
 import { calcSessionRankings } from "@/lib/utils";
 import RankingTable from "@/components/RankingTable";
+import { downloadAsJpeg } from "@/lib/download";
 
 interface OverallStats extends PlayerRankStats {
   sessionsPlayed: number;
@@ -14,6 +15,12 @@ export default function PlayersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
+  const rankingRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadRanking = async () => {
+    if (!rankingRef.current) return;
+    await downloadAsJpeg(rankingRef.current, "ranking-all-time.jpg");
+  };
 
   useEffect(() => {
     async function load() {
@@ -95,7 +102,16 @@ export default function PlayersPage() {
       ) : (
         <>
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <RankingTable rankings={filtered} showSessions />
+            <div className="flex justify-end mb-3">
+              <button onClick={handleDownloadRanking}
+                className="text-xs text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
+                ⬇ Download JPG
+              </button>
+            </div>
+            <div ref={rankingRef} className="bg-white rounded-xl p-2">
+              <p className="text-sm font-bold text-slate-700 mb-3">Ranking All-Time</p>
+              <RankingTable rankings={filtered} showSessions />
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -114,7 +130,7 @@ export default function PlayersPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className="bg-primary-100 text-primary-800 text-sm font-bold px-2.5 py-1 rounded-full">{r.rankPoints} poin</span>
+                      <span className="bg-primary-100 text-primary-800 text-sm font-bold px-2.5 py-1 rounded-full">{(r.rankScore ?? 0).toFixed(1)} pts</span>
                       <p className="text-xs text-slate-400 mt-1">WR {Math.round(r.winRate * 100)}%</p>
                     </div>
                   </div>

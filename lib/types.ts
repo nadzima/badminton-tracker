@@ -53,7 +53,9 @@ export interface PlayerRankStats {
   rankPoints: number;
   winRate: number;
   pointDiff: number;
+  rankScore: number;
   rank?: number;
+  sessionsPlayed?: number;
 }
 
 export interface OverallPlayerStats extends PlayerRankStats {
