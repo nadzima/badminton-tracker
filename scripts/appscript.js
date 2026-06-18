@@ -30,9 +30,25 @@ function sheet(name) {
   return ss().getSheetByName(name) || ss().insertSheet(name);
 }
 
+// Google Sheets auto-converts date-looking strings to Date objects on read.
+// This normalises them back to "yyyy-MM-dd" strings so comparisons stay safe.
+function padTwo(n) { return n < 10 ? '0' + n : '' + n; }
+function normalizeCell(val) {
+  if (val instanceof Date) {
+    try {
+      return Utilities.formatDate(val, ss().getSpreadsheetTimeZone(), 'yyyy-MM-dd');
+    } catch(e) {
+      return val.getFullYear() + '-' + padTwo(val.getMonth()+1) + '-' + padTwo(val.getDate());
+    }
+  }
+  return (val === null || val === undefined) ? '' : val;
+}
+
 function rows(name) {
   const v = sheet(name).getDataRange().getValues();
-  return v.length <= 1 ? [] : v.slice(1).filter(r => r[0] !== '');
+  return v.length <= 1 ? [] : v.slice(1)
+    .filter(r => r[0] !== '' && r[0] !== undefined && r[0] !== null)
+    .map(r => r.map(normalizeCell));
 }
 
 function uid() { return Utilities.getUuid(); }

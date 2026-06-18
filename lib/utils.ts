@@ -1,7 +1,15 @@
 import { Match, Player, PlayerRankStats } from "./types";
 
+function extractDatePart(dateStr: string): string {
+  // Handles "2026-06-18" (plain) and "2026-06-18T00:00:00.000Z" (Google Sheets serialised Date)
+  return String(dateStr ?? "").split("T")[0];
+}
+
 export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
+  const datePart = extractDatePart(dateStr);
+  if (!datePart) return "Tanggal tidak diketahui";
+  const date = new Date(datePart + "T00:00:00");
+  if (isNaN(date.getTime())) return datePart;
   return date.toLocaleDateString("id-ID", {
     weekday: "long",
     year: "numeric",
@@ -11,7 +19,10 @@ export function formatDate(dateStr: string): string {
 }
 
 export function formatDateShort(dateStr: string): string {
-  const date = new Date(dateStr + "T00:00:00");
+  const datePart = extractDatePart(dateStr);
+  if (!datePart) return "";
+  const date = new Date(datePart + "T00:00:00");
+  if (isNaN(date.getTime())) return datePart;
   return date.toLocaleDateString("id-ID", {
     day: "2-digit",
     month: "short",
