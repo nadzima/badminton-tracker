@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/sheets";
+import { appscript } from "@/lib/appscript";
 
 export async function GET() {
   try {
-    await db.setup();
-    return NextResponse.json({ ok: true, message: "Spreadsheet initialized!" });
+    const result = await appscript.post("setup");
+    return NextResponse.json(result);
   } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
