@@ -44,36 +44,114 @@ export function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+export type MatchDraft = Omit<Match, "id" | "session_id" | "created_at">;
+
 /**
- * Generate random doubles pairs and build one round of matches.
- * Returns matches as partial Match objects (no id/session_id yet).
+ * Generate a fair multi-round schedule.
+ *
+ * Rules:
+ * - Matches are grouped into rounds; each round runs `numCourts` matches in parallel.
+ * - Players are selected each round by priority: fewest total matches played first,
+ *   then those who rested last round (avoiding back-to-back play when possible).
+ * - Pair assignments within a round are random.
  */
-export function generateRandomMatches(
+export function generateFairSchedule(
   players: Player[],
+  totalMatches: number,
   numCourts: number,
   startMatchNumber: number = 1
-): Omit<Match, "id" | "session_id" | "created_at">[] {
-  const shuffled = shuffle(players);
-  const matches: Omit<Match, "id" | "session_id" | "created_at">[] = [];
-  const maxCourts = Math.min(numCourts, Math.floor(shuffled.length / 4));
+): MatchDraft[] {
+  if (players.length < 4 || totalMatches < 1) return [];
 
-  for (let court = 0; court < maxCourts; court++) {
-    const base = court * 4;
-    matches.push({
-      match_number: startMatchNumber + court,
-      court: `Court ${court + 1}`,
-      status: "pending",
-      team1_player1_id: shuffled[base].id,
-      team1_player2_id: shuffled[base + 1].id,
-      team2_player1_id: shuffled[base + 2].id,
-      team2_player2_id: shuffled[base + 3].id,
-      team1_score: null,
-      team2_score: null,
-      winner_team: null,
+  const maxCourtsPerRound = Math.floor(players.length / 4);
+  const courts = Math.min(numCourts, maxCourtsPerRound);
+  if (courts === 0) return [];
+
+  const rounds = Math.ceil(totalMatches / courts);
+  const playCount = new Map<string, number>(players.map((p) => [p.id, 0]));
+  let lastRoundIds = new Set<string>();
+
+  const result: MatchDraft[] = [];
+  let matchNumber = startMatchNumber;
+  let generated = 0;
+
+  for (let round = 0; round < rounds && generated < totalMatches; round++) {
+    const matchesThisRound = Math.min(courts, totalMatches - generated);
+    const spotsNeeded = matchesThisRound * 4;
+
+    // Shuffle first so equal-score players are ordered randomly
+    const pool = shuffle([...players]);
+
+    // Sort: lower score = higher priority
+    // score = playCount * 2 + (playedLastRound ? 1 : 0)
+    // This ensures fairness (play count) dominates, rest is a tiebreaker
+    pool.sort((a, b) => {
+      const sa = (playCount.get(a.id) ?? 0) * 2 + (lastRoundIds.has(a.id) ? 1 : 0);
+      const sb = (playCount.get(b.id) ?? 0) * 2 + (lastRoundIds.has(b.id) ? 1 : 0);
+      return sa - sb;
     });
+
+    const take = Math.min(spotsNeeded, Math.floor(pool.length / 4) * 4);
+    if (take === 0) break;
+
+    // Re-shuffle the selected slice to randomise team/pair assignments
+    const selected = shuffle(pool.slice(0, take));
+    const actualCourts = Math.floor(selected.length / 4);
+    const thisRound = new Set<string>();
+
+    for (let c = 0; c < actualCourts; c++) {
+      const b = c * 4;
+      result.push({
+        match_number: matchNumber++,
+        court: `Court ${c + 1}`,
+        status: "pending",
+        team1_player1_id: selected[b].id,
+        team1_player2_id: selected[b + 1].id,
+        team2_player1_id: selected[b + 2].id,
+        team2_player2_id: selected[b + 3].id,
+        team1_score: null,
+        team2_score: null,
+        winner_team: null,
+      });
+      thisRound.add(selected[b].id);
+      thisRound.add(selected[b + 1].id);
+      thisRound.add(selected[b + 2].id);
+      thisRound.add(selected[b + 3].id);
+    }
+
+    thisRound.forEach((id) => playCount.set(id, (playCount.get(id) ?? 0) + 1));
+    lastRoundIds = thisRound;
+    generated += actualCourts;
   }
 
-  return matches;
+  return result;
+}
+
+/** Preview stats for the schedule UI — no side effects. */
+export function calcSchedulePreview(
+  playerCount: number,
+  totalMatches: number,
+  numCourts: number
+): {
+  courtsUsed: number;
+  rounds: number;
+  avgMatchesPerPlayer: number;
+  restingPerRound: number;
+  canRest: boolean;
+} {
+  if (playerCount < 4) return { courtsUsed: 0, rounds: 0, avgMatchesPerPlayer: 0, restingPerRound: 0, canRest: false };
+  const courtsUsed = Math.min(numCourts, Math.floor(playerCount / 4));
+  const rounds = courtsUsed > 0 ? Math.ceil(totalMatches / courtsUsed) : 0;
+  const playingPerRound = courtsUsed * 4;
+  const restingPerRound = Math.max(0, playerCount - playingPerRound);
+  const avgMatchesPerPlayer = playerCount > 0 ? (totalMatches * 4) / playerCount : 0;
+  return {
+    courtsUsed,
+    rounds,
+    avgMatchesPerPlayer,
+    restingPerRound,
+    canRest: restingPerRound > 0,
+  };
 }
 
 /**

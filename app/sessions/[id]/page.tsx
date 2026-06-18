@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, SessionDetail } from "@/lib/api";
 import { Player, Match } from "@/lib/types";
-import { formatDate, generateRandomMatches, calcSessionRankings } from "@/lib/utils";
+import { formatDate, generateFairSchedule, calcSchedulePreview, calcSessionRankings } from "@/lib/utils";
 import MatchCard from "@/components/MatchCard";
 import RankingTable from "@/components/RankingTable";
 import AddMatchModal from "@/components/AddMatchModal";
@@ -21,6 +21,7 @@ export default function SessionDetailPage() {
   const [showAddMatch, setShowAddMatch] = useState(false);
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [numCourts, setNumCourts] = useState(2);
+  const [numMatchesWanted, setNumMatchesWanted] = useState(8);
   const [generating, setGenerating] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState("");
@@ -55,11 +56,11 @@ export default function SessionDetailPage() {
   };
 
   const handleGenerateRandom = async () => {
-    if (players.length < 4) { setError("Minimal 4 pemain untuk generate random pairs"); return; }
+    if (players.length < 4) { setError("Minimal 4 pemain untuk generate jadwal"); return; }
     setGenerating(true); setError("");
     const nextNum = matches.length > 0 ? Math.max(...matches.map((m) => m.match_number)) + 1 : 1;
-    const newMatches = generateRandomMatches(players, numCourts, nextNum);
-    if (newMatches.length === 0) { setError("Pemain tidak cukup untuk semua lapangan"); setGenerating(false); return; }
+    const newMatches = generateFairSchedule(players, numMatchesWanted, numCourts, nextNum);
+    if (newMatches.length === 0) { setError("Pemain tidak cukup untuk lapangan yang dipilih"); setGenerating(false); return; }
     await api.sessions.addMatches(id, newMatches as Parameters<typeof api.sessions.addMatches>[1]);
     await reload();
     setGenerating(false);
@@ -143,18 +144,70 @@ export default function SessionDetailPage() {
       {isActive && (
         <div className="space-y-3">
           <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
-            <h3 className="font-bold text-slate-800 text-sm">🎲 Generate Random Pairs</h3>
-            <div className="flex gap-3 items-center">
-              <label className="text-sm text-slate-600 whitespace-nowrap">Jumlah lapangan:</label>
-              <input type="number" min={1} max={10} value={numCourts} onChange={(e) => setNumCourts(parseInt(e.target.value) || 1)}
-                className="w-20 border border-slate-300 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500" />
+            <h3 className="font-bold text-slate-800 text-sm">🎲 Generate Jadwal Otomatis</h3>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Total match</label>
+                <input
+                  type="number" min={1} max={100} value={numMatchesWanted}
+                  onChange={(e) => setNumMatchesWanted(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 block mb-1">Lapangan tersedia</label>
+                <input
+                  type="number" min={1} max={10} value={numCourts}
+                  onChange={(e) => setNumCourts(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
             </div>
-            <p className="text-xs text-slate-400">Perlu {numCourts * 4} pemain • {players.length} tersedia → {Math.floor(players.length / 4)} match maks</p>
+
+            {(() => {
+              const p = calcSchedulePreview(players.length, numMatchesWanted, numCourts);
+              return (
+                <div className="bg-slate-50 rounded-xl px-4 py-3 space-y-2">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Lapangan dipakai</span>
+                      <span className="font-semibold text-slate-700">{p.courtsUsed}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Ronde</span>
+                      <span className="font-semibold text-slate-700">{p.rounds}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Main/pemain</span>
+                      <span className="font-semibold text-slate-700">~{p.avgMatchesPerPlayer.toFixed(1)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Istirahat/ronde</span>
+                      <span className={`font-semibold ${p.canRest ? "text-green-600" : "text-amber-500"}`}>
+                        {p.canRest ? `${p.restingPerRound} pemain` : "tidak ada"}
+                      </span>
+                    </div>
+                  </div>
+                  {p.canRest && (
+                    <p className="text-xs text-green-600 border-t border-slate-200 pt-2">
+                      ✓ Pemain digilir — tidak back-to-back kecuali terpaksa
+                    </p>
+                  )}
+                  {!p.canRest && players.length >= 4 && (
+                    <p className="text-xs text-amber-500 border-t border-slate-200 pt-2">
+                      Tambah pemain agar ada rotasi istirahat
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
             {error && <p className="text-xs text-red-500 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
             <div className="flex gap-2">
               <button onClick={handleGenerateRandom} disabled={generating || players.length < 4}
                 className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-50">
-                {generating ? "Generating..." : "🎲 Generate Sekarang"}
+                {generating ? "Generating..." : "🎲 Generate Jadwal"}
               </button>
               <button onClick={() => setShowAddMatch(true)} className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200">
                 ✏️ Manual
