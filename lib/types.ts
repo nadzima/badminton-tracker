@@ -97,3 +97,6 @@ export interface WinRatePoint {
   winRate: number;
   sessionId: string;
 }
+
+// Tournament re-exports (actual types live in lib/tournament.ts)
+export type { TournamentFormat, TournamentConfig, RoundRobinConfig, SingleElimConfig, DoubleElimConfig, BeruguConfig, BeruguTeam, BeruguTie, BeruguRubber, KingOfCourtConfig, RRMatchSlot, ElimSlot, RRStanding, ElimSlotState } from "./tournament";
