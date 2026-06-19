@@ -56,6 +56,7 @@ export interface PlayerRankStats {
   rankScore: number;
   rank?: number;
   sessionsPlayed?: number;
+  streak?: number;
 }
 
 export interface OverallPlayerStats extends PlayerRankStats {
@@ -69,4 +70,30 @@ export interface NewMatchForm {
   team1_player2_id: string;
   team2_player1_id: string;
   team2_player2_id: string;
+}
+
+export interface PartnershipStats {
+  player1: Player;
+  player2: Player;
+  matches: number;
+  wins: number;
+  winRate: number;
+}
+
+export interface H2HStats {
+  player1Wins: number;
+  player2Wins: number;
+  totalMatches: number;
+}
+
+export interface SessionSummaryData {
+  mvp: Player | null;
+  hottestMatch: Match | null;
+  mostConsistent: Player | null;
+}
+
+export interface WinRatePoint {
+  date: string;
+  winRate: number;
+  sessionId: string;
 }

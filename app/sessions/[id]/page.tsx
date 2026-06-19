@@ -1,20 +1,31 @@
 "use client";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { api, SessionDetail } from "@/lib/api";
 import { Player, Match } from "@/lib/types";
-import { formatDate, generateFairSchedule, calcSchedulePreview, calcSessionRankings } from "@/lib/utils";
+import {
+  formatDate,
+  generateFairSchedule,
+  calcSchedulePreview,
+  calcSessionRankings,
+  calcPartnerships,
+  calcSessionSummary,
+} from "@/lib/utils";
 import MatchCard from "@/components/MatchCard";
 import RankingTable from "@/components/RankingTable";
 import AddMatchModal from "@/components/AddMatchModal";
 import PlayerCombobox from "@/components/PlayerCombobox";
+import SessionSummary from "@/components/SessionSummary";
+import PartnershipStatsTable from "@/components/PartnershipStats";
 import { downloadAsJpeg } from "@/lib/download";
 
-type Tab = "matches" | "ranking" | "players";
+type Tab = "matches" | "ranking" | "players" | "pairs";
 
-export default function SessionDetailPage() {
+function SessionDetailInner() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isReadOnly = searchParams.get("readonly") === "true";
 
   const [data, setData] = useState<SessionDetail | null>(null);
   const [tab, setTab] = useState<Tab>("matches");
@@ -25,7 +36,9 @@ export default function SessionDetailPage() {
   const [numMatchesWanted, setNumMatchesWanted] = useState(8);
   const [generating, setGenerating] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [undoing, setUndoing] = useState(false);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
   const rankingRef = useRef<HTMLDivElement>(null);
   const matchHistoryRef = useRef<HTMLDivElement>(null);
 
@@ -37,20 +50,43 @@ export default function SessionDetailPage() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  if (loading) return <div className="flex items-center justify-center h-40"><div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" /></div>;
-  if (!data?.session) return <div className="text-center py-20"><p className="text-slate-400">Sesi tidak ditemukan.</p><button onClick={() => router.push("/sessions")} className="mt-3 text-primary-600 font-medium text-sm">← Kembali</button></div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!data?.session) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-slate-400 text-sm">Sesi tidak ditemukan.</p>
+        <button onClick={() => router.push("/sessions")} className="mt-3 text-primary-600 font-medium text-sm">← Kembali</button>
+      </div>
+    );
+  }
 
   const { session, players, allPlayers, matches } = data;
   const isActive = session.status === "active";
   const rankings = calcSessionRankings(matches, players);
-  const completedMatches = matches.filter((m) => m.status === "completed").length;
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
+  const completedMatches = matches.filter((m) => m.status === "completed");
+  const partnerships = calcPartnerships(matches, players);
+  const summary = calcSessionSummary(matches, players);
+  const lastCompleted = [...matches].reverse().find((m) => m.status === "completed");
 
   const handleScoreSubmit = async (matchId: string, score1: number, score2: number) => {
     const winner = score1 > score2 ? 1 : score1 < score2 ? 2 : null;
     await api.matches.update(matchId, { team1_score: score1, team2_score: score2, winner_team: winner, status: "completed" });
     await reload();
+  };
+
+  const handleUndoLastScore = async () => {
+    if (!lastCompleted) return;
+    setUndoing(true);
+    await api.matches.update(lastCompleted.id, { team1_score: null, team2_score: null, winner_team: null, status: "pending" });
+    await reload();
+    setUndoing(false);
   };
 
   const handleDeleteMatch = async (matchId: string) => {
@@ -108,6 +144,19 @@ export default function SessionDetailPage() {
     await reload();
   };
 
+  const handleDeleteSession = async () => {
+    if (!confirm("Hapus sesi ini beserta semua match-nya?")) return;
+    await api.sessions.delete(id);
+    router.push("/sessions");
+  };
+
+  const handleCopyReadOnly = async () => {
+    const url = `${window.location.origin}/sessions/${id}?readonly=true`;
+    await navigator.clipboard.writeText(url).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleDownloadRanking = async () => {
     if (!rankingRef.current) return;
     await downloadAsJpeg(rankingRef.current, `ranking-${session.date}.jpg`);
@@ -115,144 +164,143 @@ export default function SessionDetailPage() {
 
   const handleDownloadMatchHistory = async () => {
     if (!matchHistoryRef.current) return;
-    await downloadAsJpeg(matchHistoryRef.current, `match-history-${session.date}.jpg`);
+    await downloadAsJpeg(matchHistoryRef.current, `history-${session.date}.jpg`);
   };
 
-  const handleDeleteSession = async () => {
-    if (!confirm("Hapus sesi ini beserta semua match-nya?")) return;
-    await api.sessions.delete(id);
-    router.push("/sessions");
-  };
-
-  // ────────────────────────────────────────────────────────────────────────────
+  const tabs = [
+    { key: "matches" as Tab, label: `Match (${matches.length})` },
+    { key: "ranking" as Tab, label: "Ranking" },
+    { key: "pairs" as Tab, label: "Pasangan" },
+    { key: "players" as Tab, label: `Pemain (${players.length})` },
+  ];
 
   return (
-    <div className="space-y-5">
-      <button onClick={() => router.push("/sessions")} className="text-sm text-slate-500 hover:text-slate-700 flex items-center gap-1">← Semua Sesi</button>
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <button onClick={() => router.push("/sessions")} className="text-sm text-slate-400 hover:text-slate-600">← Sesi</button>
+        {isReadOnly && (
+          <span className="ml-auto text-xs bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full font-medium">
+            Hanya lihat
+          </span>
+        )}
+      </div>
 
       {/* Header */}
-      <div className={`rounded-3xl p-5 shadow-sm ${isActive ? "bg-gradient-to-br from-primary-700 to-primary-600 text-white" : "bg-white border border-slate-200"}`}>
+      <div className={`rounded-2xl p-5 ${isActive ? "bg-primary-700 text-white" : "bg-white border border-slate-100"}`}>
         <div className="flex items-start justify-between">
           <div>
-            <span className={`text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"}`}>
-              {isActive ? "⏳ Aktif" : "✅ Selesai"}
+            <span className={`text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ${isActive ? "bg-white/15 text-white/90" : "bg-slate-100 text-slate-500"}`}>
+              {isActive ? "Aktif" : "Selesai"}
             </span>
-            <h1 className={`text-xl font-extrabold mt-2 ${isActive ? "text-white" : "text-slate-800"}`}>{formatDate(session.date)}</h1>
-            {session.location && <p className={`text-sm mt-0.5 ${isActive ? "text-primary-100" : "text-slate-500"}`}>📍 {session.location}</p>}
-            {session.notes && <p className={`text-sm mt-1 ${isActive ? "text-primary-200" : "text-slate-400"}`}>{session.notes}</p>}
+            <h1 className={`text-lg font-bold mt-2 ${isActive ? "text-white" : "text-slate-800"}`}>{formatDate(session.date)}</h1>
+            {session.location && <p className={`text-sm mt-0.5 ${isActive ? "text-primary-200" : "text-slate-500"}`}>📍 {session.location}</p>}
+            {session.notes && <p className={`text-xs mt-1 ${isActive ? "text-primary-300" : "text-slate-400"}`}>{session.notes}</p>}
           </div>
-          <div className={`text-right text-sm ${isActive ? "text-primary-100" : "text-slate-500"}`}>
-            <p className="font-bold text-2xl">{players.length}</p>
-            <p>pemain</p>
+          <div className={`text-right ${isActive ? "text-primary-200" : "text-slate-400"}`}>
+            <p className={`text-2xl font-bold ${isActive ? "text-white" : "text-slate-700"}`}>{players.length}</p>
+            <p className="text-xs">pemain</p>
           </div>
         </div>
-        <div className={`mt-4 flex gap-4 text-sm ${isActive ? "text-primary-100" : "text-slate-500"}`}>
-          <span>🎯 {matches.length} match</span>
-          <span>✅ {completedMatches} selesai</span>
-          <span>⏳ {matches.length - completedMatches} menunggu</span>
+        <div className={`mt-3 flex gap-4 text-xs ${isActive ? "text-primary-200" : "text-slate-400"}`}>
+          <span>{matches.length} match</span>
+          <span>{completedMatches.length} selesai</span>
+          <span>{matches.length - completedMatches.length} pending</span>
         </div>
       </div>
 
-      {/* Actions */}
-      {isActive && (
-        <div className="space-y-3">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 space-y-3">
-            <h3 className="font-bold text-slate-800 text-sm">🎲 Generate Jadwal Otomatis</h3>
+      {/* Share + Undo row */}
+      <div className="flex gap-2">
+        <button onClick={handleCopyReadOnly}
+          className="flex items-center gap-1.5 text-xs text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-2 hover:border-slate-300 transition-colors">
+          {copied ? "✓ Disalin" : "🔗 Bagikan"}
+        </button>
+        {isActive && !isReadOnly && lastCompleted && (
+          <button onClick={handleUndoLastScore} disabled={undoing}
+            className="flex items-center gap-1.5 text-xs text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-2 hover:border-amber-300 hover:text-amber-600 transition-colors disabled:opacity-50">
+            {undoing ? "..." : "↩ Undo Skor #" + lastCompleted.match_number}
+          </button>
+        )}
+      </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Total match</label>
-                <input
-                  type="number" min={1} max={100} value={numMatchesWanted}
-                  onChange={(e) => setNumMatchesWanted(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 block mb-1">Lapangan tersedia</label>
-                <input
-                  type="number" min={1} max={10} value={numCourts}
-                  onChange={(e) => setNumCourts(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-              </div>
+      {/* Active actions */}
+      {isActive && !isReadOnly && (
+        <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Generate Jadwal</p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Total match</label>
+              <input type="number" min={1} max={100} value={numMatchesWanted}
+                onChange={(e) => setNumMatchesWanted(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400" />
             </div>
-
-            {(() => {
-              const p = calcSchedulePreview(players.length, numMatchesWanted, numCourts);
-              return (
-                <div className="bg-slate-50 rounded-xl px-4 py-3 space-y-2">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Lapangan dipakai</span>
-                      <span className="font-semibold text-slate-700">{p.courtsUsed}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Ronde</span>
-                      <span className="font-semibold text-slate-700">{p.rounds}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Main/pemain</span>
-                      <span className="font-semibold text-slate-700">~{p.avgMatchesPerPlayer.toFixed(1)}</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                      <span className="text-slate-500">Istirahat/ronde</span>
-                      <span className={`font-semibold ${p.canRest ? "text-green-600" : "text-amber-500"}`}>
-                        {p.canRest ? `${p.restingPerRound} pemain` : "tidak ada"}
-                      </span>
-                    </div>
-                  </div>
-                  {p.canRest && (
-                    <p className="text-xs text-green-600 border-t border-slate-200 pt-2">
-                      ✓ Pemain digilir — tidak back-to-back kecuali terpaksa
-                    </p>
-                  )}
-                  {!p.canRest && players.length >= 4 && (
-                    <p className="text-xs text-amber-500 border-t border-slate-200 pt-2">
-                      Tambah pemain agar ada rotasi istirahat
-                    </p>
-                  )}
-                </div>
-              );
-            })()}
-
-            {error && <p className="text-xs text-red-500 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
-            <div className="flex gap-2">
-              <button onClick={handleGenerateRandom} disabled={generating || players.length < 4}
-                className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-50">
-                {generating ? "Generating..." : "🎲 Generate Jadwal"}
-              </button>
-              <button onClick={() => setShowAddMatch(true)} className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-medium hover:bg-slate-200">
-                ✏️ Manual
-              </button>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Lapangan</label>
+              <input type="number" min={1} max={10} value={numCourts}
+                onChange={(e) => setNumCourts(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400" />
             </div>
           </div>
+          {(() => {
+            const p = calcSchedulePreview(players.length, numMatchesWanted, numCourts);
+            return (
+              <div className="bg-slate-50 rounded-xl px-4 py-3 grid grid-cols-2 gap-y-1.5 text-xs">
+                <div className="flex justify-between"><span className="text-slate-400">Lapangan dipakai</span><span className="font-medium text-slate-700">{p.courtsUsed}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">Ronde</span><span className="font-medium text-slate-700">{p.rounds}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400">Match/pemain</span><span className="font-medium text-slate-700">~{p.avgMatchesPerPlayer.toFixed(1)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Istirahat/ronde</span>
+                  <span className={`font-medium ${p.canRest ? "text-green-600" : "text-amber-500"}`}>
+                    {p.canRest ? `${p.restingPerRound} pemain` : "tidak ada"}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+          {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-2">
-            <button onClick={handleComplete} disabled={completing}
-              className="flex-1 py-3 rounded-2xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 disabled:opacity-50 shadow-lg shadow-primary-600/20">
-              {completing ? "Menyimpan..." : "✅ Selesaikan Sesi"}
+            <button onClick={handleGenerateRandom} disabled={generating || players.length < 4}
+              className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-50">
+              {generating ? "Generating..." : "Generate Jadwal"}
             </button>
-            <button onClick={handleDeleteSession} className="px-4 py-3 rounded-2xl bg-red-50 text-red-500 text-sm font-medium hover:bg-red-100">🗑️</button>
+            <button onClick={() => setShowAddMatch(true)}
+              className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-medium hover:bg-slate-200">
+              Manual
+            </button>
           </div>
         </div>
       )}
 
-      {!isActive && (
+      {/* Action buttons */}
+      {!isReadOnly && (
         <div className="flex gap-2">
-          <button onClick={handleReopen} className="flex-1 py-3 rounded-2xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200">🔓 Buka Kembali</button>
-          <button onClick={handleDeleteSession} className="px-4 py-3 rounded-2xl bg-red-50 text-red-500 text-sm font-medium hover:bg-red-100">🗑️</button>
+          {isActive ? (
+            <button onClick={handleComplete} disabled={completing}
+              className="flex-1 py-3 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-50">
+              {completing ? "Menyimpan..." : "Selesaikan Sesi"}
+            </button>
+          ) : (
+            <button onClick={handleReopen}
+              className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200">
+              Buka Kembali
+            </button>
+          )}
+          <button onClick={handleDeleteSession}
+            className="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-400 text-sm hover:border-red-200 hover:text-red-400 transition-colors">
+            Hapus
+          </button>
         </div>
+      )}
+
+      {/* Session summary (completed only) */}
+      {!isActive && completedMatches.length > 0 && (
+        <SessionSummary summary={summary} matches={matches} players={players} />
       )}
 
       {/* Tabs */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
-        {([
-          { key: "matches", label: `Match (${matches.length})` },
-          { key: "ranking", label: "Ranking" },
-          { key: "players", label: `Pemain (${players.length})` },
-        ] as { key: Tab; label: string }[]).map((t) => (
+        {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors ${tab === t.key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${tab === t.key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
             {t.label}
           </button>
         ))}
@@ -260,30 +308,32 @@ export default function SessionDetailPage() {
 
       {/* Tab: Matches */}
       {tab === "matches" && (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           <div className="flex justify-end">
             <button onClick={handleDownloadMatchHistory}
-              className="text-xs text-slate-500 hover:text-slate-700 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm">
-              ⬇ Download JPG
+              className="text-xs text-slate-400 hover:text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5">
+              Download JPG
             </button>
           </div>
-          <div ref={matchHistoryRef} className="space-y-3 bg-slate-50 rounded-2xl p-3">
-          {matches.length === 0 ? (
-            <div className="bg-white rounded-2xl p-10 text-center shadow-sm border border-slate-100">
-              <p className="text-4xl mb-3">🎯</p>
-              <p className="text-slate-500 text-sm">Belum ada match.</p>
-              {isActive && <p className="text-slate-400 text-xs mt-1">Generate random pairs atau tambah manual di atas.</p>}
-            </div>
-          ) : (
-            matches.map((m) => (
-              <MatchCard key={m.id} match={m} players={allPlayers} onScoreSubmit={handleScoreSubmit} onDelete={handleDeleteMatch} sessionStatus={session.status} />
-            ))
-          )}
+          <div ref={matchHistoryRef} className="space-y-2 bg-slate-50 rounded-xl p-2.5">
+            {matches.length === 0 ? (
+              <div className="bg-white rounded-xl p-10 text-center">
+                <p className="text-slate-400 text-sm">Belum ada match.</p>
+                {isActive && !isReadOnly && <p className="text-slate-300 text-xs mt-1">Generate jadwal atau tambah manual di atas.</p>}
+              </div>
+            ) : (
+              matches.map((m) => (
+                <MatchCard key={m.id} match={m} players={allPlayers}
+                  onScoreSubmit={isReadOnly ? async () => {} : handleScoreSubmit}
+                  onDelete={isReadOnly ? undefined : handleDeleteMatch}
+                  sessionStatus={isReadOnly ? "completed" : session.status} />
+              ))
+            )}
           </div>
-          {isActive && matches.length > 0 && (
+          {isActive && !isReadOnly && matches.length > 0 && (
             <button onClick={() => setShowAddMatch(true)}
-              className="w-full py-3 rounded-2xl border-2 border-dashed border-slate-300 text-slate-400 text-sm font-medium hover:border-primary-400 hover:text-primary-600 transition-colors">
-              ➕ Tambah Match Manual
+              className="w-full py-3 rounded-xl border border-dashed border-slate-300 text-slate-400 text-sm hover:border-primary-400 hover:text-primary-600 transition-colors">
+              + Tambah Match Manual
             </button>
           )}
         </div>
@@ -291,72 +341,66 @@ export default function SessionDetailPage() {
 
       {/* Tab: Ranking */}
       {tab === "ranking" && (
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-2xl border border-slate-100 p-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-bold text-slate-800">Ranking Sesi</h2>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">{completedMatches} match selesai</span>
-              <button onClick={handleDownloadRanking}
-                className="text-xs text-slate-500 hover:text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
-                ⬇ JPG
-              </button>
-            </div>
+            <p className="font-semibold text-slate-800 text-sm">Ranking Sesi</p>
+            <button onClick={handleDownloadRanking}
+              className="text-xs text-slate-400 hover:text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
+              Download JPG
+            </button>
           </div>
-          {completedMatches === 0 ? (
-            <div className="text-center py-8"><p className="text-3xl mb-2">📊</p><p className="text-slate-400 text-sm">Ranking akan muncul setelah ada match yang selesai</p></div>
+          {completedMatches.length === 0 ? (
+            <div className="text-center py-8"><p className="text-slate-400 text-sm">Belum ada match selesai</p></div>
           ) : (
-            <>
-              <div ref={rankingRef} className="bg-white rounded-xl p-2">
-                <p className="text-sm font-bold text-slate-700 mb-3">
-                  Ranking Sesi · {session.date}
-                  {session.location ? ` · ${session.location}` : ""}
-                </p>
-                <RankingTable rankings={rankings} />
-              </div>
-            </>
+            <div ref={rankingRef} className="bg-white rounded-xl p-1">
+              <p className="text-xs text-slate-400 mb-3">{session.date}{session.location ? ` · ${session.location}` : ""}</p>
+              <RankingTable rankings={rankings} />
+            </div>
           )}
+        </div>
+      )}
+
+      {/* Tab: Pairs */}
+      {tab === "pairs" && (
+        <div className="bg-white rounded-2xl border border-slate-100 p-4">
+          <p className="font-semibold text-slate-800 text-sm mb-4">Statistik Pasangan</p>
+          <PartnershipStatsTable partnerships={partnerships} />
         </div>
       )}
 
       {/* Tab: Players */}
       {tab === "players" && (
         <div className="space-y-3">
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-            <h2 className="font-bold text-slate-800 mb-3">Pemain di Sesi Ini</h2>
+          <div className="bg-white rounded-2xl border border-slate-100 p-4">
+            <p className="font-semibold text-slate-800 text-sm mb-3">Pemain ({players.length})</p>
             {players.length === 0 ? (
               <p className="text-slate-400 text-sm text-center py-4">Belum ada pemain</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {players.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
-                    <span className="font-medium text-slate-800">{p.name}</span>
-                    {isActive && (
-                      <button onClick={() => handleRemovePlayer(p.id)} className="text-xs text-red-400 hover:text-red-600 font-medium">Hapus</button>
+                  <div key={p.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2.5">
+                    <span className="text-sm text-slate-700 font-medium">{p.name}</span>
+                    {isActive && !isReadOnly && (
+                      <button onClick={() => handleRemovePlayer(p.id)} className="text-xs text-slate-300 hover:text-red-400 transition-colors">Hapus</button>
                     )}
                   </div>
                 ))}
               </div>
             )}
           </div>
-
-          {isActive && (
-            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          {isActive && !isReadOnly && (
+            <div className="bg-white rounded-2xl border border-slate-100 p-4">
               {!showAddPlayer ? (
                 <button onClick={() => setShowAddPlayer(true)}
-                  className="w-full py-3 rounded-xl border-2 border-dashed border-slate-300 text-slate-400 text-sm font-medium hover:border-primary-400 hover:text-primary-600 transition-colors">
-                  ➕ Tambah Pemain ke Sesi
+                  className="w-full py-2.5 rounded-xl border border-dashed border-slate-300 text-slate-400 text-sm hover:border-primary-400 hover:text-primary-600 transition-colors">
+                  + Tambah Pemain
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <h3 className="font-bold text-slate-800 text-sm">Tambah Pemain</h3>
-                  <PlayerCombobox
-                    allPlayers={allPlayers}
-                    selectedIds={players.map((p) => p.id)}
-                    onAdd={handleAddPlayer}
-                    onRemove={() => {}}
-                    placeholder="Cari atau tambah pemain baru..."
-                  />
-                  <button onClick={() => setShowAddPlayer(false)} className="text-sm text-slate-400 hover:text-slate-600">Tutup</button>
+                  <p className="text-sm font-semibold text-slate-700">Tambah Pemain</p>
+                  <PlayerCombobox allPlayers={allPlayers} selectedIds={players.map((p) => p.id)}
+                    onAdd={handleAddPlayer} onRemove={() => {}} placeholder="Cari atau tambah pemain..." />
+                  <button onClick={() => setShowAddPlayer(false)} className="text-xs text-slate-400 hover:text-slate-600">Tutup</button>
                 </div>
               )}
             </div>
@@ -365,13 +409,17 @@ export default function SessionDetailPage() {
       )}
 
       {showAddMatch && (
-        <AddMatchModal
-          players={players}
-          onClose={() => setShowAddMatch(false)}
-          onAdd={handleAddMatch}
-          nextMatchNumber={matches.length > 0 ? Math.max(...matches.map((m) => m.match_number)) + 1 : 1}
-        />
+        <AddMatchModal players={players} onClose={() => setShowAddMatch(false)} onAdd={handleAddMatch}
+          nextMatchNumber={matches.length > 0 ? Math.max(...matches.map((m) => m.match_number)) + 1 : 1} />
       )}
     </div>
+  );
+}
+
+export default function SessionDetailPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-40"><div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" /></div>}>
+      <SessionDetailInner />
+    </Suspense>
   );
 }

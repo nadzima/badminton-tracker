@@ -95,8 +95,8 @@ export const api = {
     update: (
       id: string,
       data: {
-        team1_score?: number;
-        team2_score?: number;
+        team1_score?: number | null;
+        team2_score?: number | null;
         winner_team?: number | null;
         status?: string;
       }
