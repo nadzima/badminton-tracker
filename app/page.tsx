@@ -40,15 +40,15 @@ export default function HomePage() {
       {/* Active session banner */}
       {activeSession && (
         <Link href={`/sessions/${activeSession.id}`}>
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between hover:border-amber-300 transition-colors">
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex items-center justify-between hover:border-amber-300 dark:hover:border-amber-700 transition-colors">
             <div>
-              <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">Sesi Aktif</p>
-              <p className="font-semibold text-slate-800 mt-0.5 text-sm">{formatDateShort(activeSession.date)}</p>
+              <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide">Sesi Aktif</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-100 mt-0.5 text-sm">{formatDateShort(activeSession.date)}</p>
               {activeSession.location && (
-                <p className="text-xs text-slate-400 mt-0.5">{activeSession.location}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{activeSession.location}</p>
               )}
             </div>
-            <span className="text-slate-400 text-lg">›</span>
+            <span className="text-slate-400 dark:text-slate-500 text-lg">›</span>
           </div>
         </Link>
       )}
@@ -60,9 +60,9 @@ export default function HomePage() {
           { label: "Pemain", value: stats?.totalPlayers ?? 0 },
           { label: "Match", value: stats?.totalMatches ?? 0 },
         ].map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 border border-slate-100 text-center">
-            <p className="text-2xl font-bold text-slate-800">{s.value}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{s.label}</p>
+          <div key={s.label} className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 text-center">
+            <p className="text-2xl font-bold text-slate-800 dark:text-slate-100">{s.value}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
@@ -70,15 +70,15 @@ export default function HomePage() {
       {/* Top player */}
       {stats?.topPlayer && (
         <Link href="/players">
-          <div className="bg-white rounded-2xl p-4 border border-slate-100 flex items-center justify-between hover:border-slate-200 transition-colors">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700 flex items-center justify-between hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center text-lg">🥇</div>
+              <div className="w-9 h-9 bg-amber-50 dark:bg-amber-900/20 rounded-xl flex items-center justify-center text-lg">🥇</div>
               <div>
-                <p className="text-xs text-slate-400">Top Player (All Time)</p>
-                <p className="font-semibold text-slate-800 text-sm">{stats.topPlayer.name}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Top Player (All Time)</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">{stats.topPlayer.name}</p>
               </div>
             </div>
-            <span className="text-slate-300 text-lg">›</span>
+            <span className="text-slate-300 dark:text-slate-600 text-lg">›</span>
           </div>
         </Link>
       )}
@@ -86,12 +86,12 @@ export default function HomePage() {
       {/* Recent sessions */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
-          <p className="font-semibold text-slate-800 text-sm">Sesi Terakhir</p>
+          <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Sesi Terakhir</p>
           <Link href="/sessions" className="text-xs text-primary-600 font-medium">Lihat semua</Link>
         </div>
         {!stats?.recentSessions.length ? (
-          <div className="bg-white rounded-2xl p-8 text-center border border-slate-100">
-            <p className="text-slate-400 text-sm">Belum ada sesi.</p>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center border border-slate-100 dark:border-slate-700">
+            <p className="text-slate-400 dark:text-slate-500 text-sm">Belum ada sesi.</p>
             <Link href="/sessions/new" className="mt-2 inline-block text-primary-600 font-medium text-sm">
               Buat sesi pertamamu →
             </Link>
@@ -100,12 +100,12 @@ export default function HomePage() {
           <div className="space-y-2">
             {stats.recentSessions.map((s) => (
               <Link key={s.id} href={`/sessions/${s.id}`}>
-                <div className="bg-white rounded-2xl px-4 py-3 border border-slate-100 flex items-center justify-between hover:border-slate-200 transition-colors">
+                <div className="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 border border-slate-100 dark:border-slate-700 flex items-center justify-between hover:border-slate-200 dark:hover:border-slate-600 transition-colors">
                   <div>
-                    <p className="font-medium text-slate-800 text-sm">{formatDateShort(s.date)}</p>
-                    {s.location && <p className="text-xs text-slate-400 mt-0.5">{s.location}</p>}
+                    <p className="font-medium text-slate-800 dark:text-slate-100 text-sm">{formatDateShort(s.date)}</p>
+                    {s.location && <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{s.location}</p>}
                   </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${s.status === "active" ? "bg-amber-50 text-amber-600" : "bg-primary-50 text-primary-700"}`}>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${s.status === "active" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400" : "bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400"}`}>
                     {s.status === "active" ? "Aktif" : "Selesai"}
                   </span>
                 </div>

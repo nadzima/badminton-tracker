@@ -13,7 +13,7 @@ function StreakBadge({ streak }: { streak?: number }) {
   const isWin = streak > 0;
   const count = Math.abs(streak);
   return (
-    <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${isWin ? "bg-green-50 text-green-600" : "bg-red-50 text-red-400"}`}>
+    <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${isWin ? "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400" : "bg-red-50 text-red-400 dark:bg-red-900/20"}`}>
       {isWin ? `W${count}` : `L${count}`}
     </span>
   );
@@ -29,7 +29,7 @@ export default function RankingTable({ rankings, showSessions }: Props) {
       <div className="overflow-x-auto">
         <table className="w-full text-xs min-w-[660px]">
           <thead>
-            <tr className="text-slate-400 border-b border-slate-100">
+            <tr className="text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-700">
               <th className="pb-2 text-left pl-1 w-6 font-medium">#</th>
               <th className="pb-2 text-left min-w-[80px] pr-2 font-medium">Pemain</th>
               {showSessions && <th className="pb-2 text-right px-2 font-medium whitespace-nowrap">Sesi</th>}
@@ -44,22 +44,22 @@ export default function RankingTable({ rankings, showSessions }: Props) {
               <th className="pb-2 text-right pl-2 font-medium">Score</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-50">
+          <tbody className="divide-y divide-slate-50 dark:divide-slate-700">
             {rankings.map((r, i) => (
               <tr key={r.player.id} className={i < 3 ? "font-medium" : ""}>
                 <td className="py-2.5 pl-1">
-                  {i < 3 ? <span className="text-sm">{medals[i]}</span> : <span className="text-slate-400 font-normal">{i + 1}</span>}
+                  {i < 3 ? <span className="text-sm">{medals[i]}</span> : <span className="text-slate-400 dark:text-slate-500 font-normal">{i + 1}</span>}
                 </td>
-                <td className="py-2.5 text-slate-800 pr-2">{r.player.name}</td>
-                {showSessions && <td className="py-2.5 text-right px-2 text-slate-500">{r.sessionsPlayed ?? "—"}</td>}
-                <td className="py-2.5 text-right px-2 text-slate-500">{r.gamesPlayed}</td>
+                <td className="py-2.5 text-slate-800 dark:text-slate-100 pr-2">{r.player.name}</td>
+                {showSessions && <td className="py-2.5 text-right px-2 text-slate-500 dark:text-slate-400">{r.sessionsPlayed ?? "—"}</td>}
+                <td className="py-2.5 text-right px-2 text-slate-500 dark:text-slate-400">{r.gamesPlayed}</td>
                 <td className="py-2.5 text-right px-2 text-green-600 font-semibold">{r.wins}</td>
                 <td className="py-2.5 text-right px-2 text-red-400">{r.losses}</td>
-                <td className="py-2.5 text-right px-2 text-slate-500">
+                <td className="py-2.5 text-right px-2 text-slate-500 dark:text-slate-400">
                   {r.gamesPlayed > 0 ? `${Math.round(r.winRate * 100)}%` : "—"}
                 </td>
-                <td className="py-2.5 text-right px-2 text-slate-500">{r.pointsScored}</td>
-                <td className="py-2.5 text-right px-2 text-slate-500">{r.pointsConceded}</td>
+                <td className="py-2.5 text-right px-2 text-slate-500 dark:text-slate-400">{r.pointsScored}</td>
+                <td className="py-2.5 text-right px-2 text-slate-500 dark:text-slate-400">{r.pointsConceded}</td>
                 <td className={`py-2.5 text-right px-2 font-medium ${r.pointDiff > 0 ? "text-green-600" : r.pointDiff < 0 ? "text-red-400" : "text-slate-400"}`}>
                   {r.pointDiff > 0 ? "+" : ""}{r.pointDiff}
                 </td>
@@ -67,7 +67,7 @@ export default function RankingTable({ rankings, showSessions }: Props) {
                   <StreakBadge streak={r.streak} />
                 </td>
                 <td className="py-2.5 text-right pl-2">
-                  <span className="bg-primary-50 text-primary-700 font-bold px-2 py-0.5 rounded-full text-xs">
+                  <span className="bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400 font-bold px-2 py-0.5 rounded-full text-xs">
                     {(r.rankScore ?? 0).toFixed(1)}
                   </span>
                 </td>
@@ -76,11 +76,11 @@ export default function RankingTable({ rankings, showSessions }: Props) {
           </tbody>
         </table>
       </div>
-      <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-0.5">
-        <p className="text-xs text-slate-500">
+      <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-700 space-y-0.5">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           <span className="font-semibold">Score</span> = (W × 0.5) + (±PD × 0.5) · <span className="font-semibold">Streak</span>: W = win, L = loss (berturut-turut)
         </p>
-        <p className="text-xs text-slate-400">M = Matches · W = Wins · L = Losses · WR% = Win Rate · PF/PA = Points For/Against</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">M = Matches · W = Wins · L = Losses · WR% = Win Rate · PF/PA = Points For/Against</p>
       </div>
     </div>
   );

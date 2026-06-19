@@ -10,7 +10,7 @@ export default function WinTrendChart({ data }: Props) {
   if (data.length < 2) {
     return (
       <div className="text-center py-4">
-        <p className="text-xs text-slate-400">Minimal 2 sesi untuk menampilkan tren</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500">Minimal 2 sesi untuk menampilkan tren</p>
       </div>
     );
   }
@@ -44,7 +44,8 @@ export default function WinTrendChart({ data }: Props) {
         <line
           x1={padL} y1={padT + cH / 2}
           x2={W - padR} y2={padT + cH / 2}
-          stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4 3"
+          stroke="currentColor" strokeWidth="1" strokeDasharray="4 3"
+          className="text-slate-200 dark:text-slate-700"
         />
         {/* Area */}
         <path d={areaPath} fill="rgba(22,163,74,0.08)" />
@@ -55,9 +56,9 @@ export default function WinTrendChart({ data }: Props) {
           <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#16a34a" />
         ))}
       </svg>
-      <div className="flex justify-between text-xs text-slate-400">
+      <div className="flex justify-between text-xs text-slate-400 dark:text-slate-500">
         <span>{formatDateShort(data[0].date)}</span>
-        <span className="text-slate-500 font-medium">avg {Math.round(avg * 100)}%</span>
+        <span className="text-slate-500 dark:text-slate-400 font-medium">avg {Math.round(avg * 100)}%</span>
         <span>{formatDateShort(data[data.length - 1].date)}</span>
       </div>
     </div>

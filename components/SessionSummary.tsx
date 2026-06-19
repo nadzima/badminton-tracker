@@ -36,18 +36,18 @@ export default function SessionSummary({ summary, matches, players }: Props) {
   if (items.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-      <div className="px-4 pt-4 pb-2 border-b border-slate-50">
-        <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Ringkasan Sesi</p>
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+      <div className="px-4 pt-4 pb-2 border-b border-slate-50 dark:border-slate-700">
+        <p className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Ringkasan Sesi</p>
       </div>
-      <div className="divide-y divide-slate-50">
+      <div className="divide-y divide-slate-50 dark:divide-slate-700">
         {items.map((item) => (
           <div key={item.label} className="flex items-center gap-3 px-4 py-3">
             <span className="text-2xl w-8 text-center shrink-0">{item.icon}</span>
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-slate-400">{item.label}</p>
-              <p className="font-semibold text-slate-800 text-sm truncate">{item.value}</p>
-              <p className="text-xs text-slate-400 truncate">{item.sub}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500">{item.label}</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm truncate">{item.value}</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 truncate">{item.sub}</p>
             </div>
           </div>
         ))}

@@ -61,7 +61,7 @@ function SessionDetailInner() {
   if (!data?.session) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-400 text-sm">Sesi tidak ditemukan.</p>
+        <p className="text-slate-400 dark:text-slate-500 text-sm">Sesi tidak ditemukan.</p>
         <button onClick={() => router.push("/sessions")} className="mt-3 text-primary-600 font-medium text-sm">← Kembali</button>
       </div>
     );
@@ -177,31 +177,31 @@ function SessionDetailInner() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <button onClick={() => router.push("/sessions")} className="text-sm text-slate-400 hover:text-slate-600">← Sesi</button>
+        <button onClick={() => router.push("/sessions")} className="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">← Sesi</button>
         {isReadOnly && (
-          <span className="ml-auto text-xs bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full font-medium">
+          <span className="ml-auto text-xs bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-2.5 py-1 rounded-full font-medium">
             Hanya lihat
           </span>
         )}
       </div>
 
       {/* Header */}
-      <div className={`rounded-2xl p-5 ${isActive ? "bg-primary-700 text-white" : "bg-white border border-slate-100"}`}>
+      <div className={`rounded-2xl p-5 ${isActive ? "bg-primary-700 text-white" : "bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700"}`}>
         <div className="flex items-start justify-between">
           <div>
-            <span className={`text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ${isActive ? "bg-white/15 text-white/90" : "bg-slate-100 text-slate-500"}`}>
+            <span className={`text-xs font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full ${isActive ? "bg-white/15 text-white/90" : "bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"}`}>
               {isActive ? "Aktif" : "Selesai"}
             </span>
-            <h1 className={`text-lg font-bold mt-2 ${isActive ? "text-white" : "text-slate-800"}`}>{formatDate(session.date)}</h1>
-            {session.location && <p className={`text-sm mt-0.5 ${isActive ? "text-primary-200" : "text-slate-500"}`}>📍 {session.location}</p>}
-            {session.notes && <p className={`text-xs mt-1 ${isActive ? "text-primary-300" : "text-slate-400"}`}>{session.notes}</p>}
+            <h1 className={`text-lg font-bold mt-2 ${isActive ? "text-white" : "text-slate-800 dark:text-slate-100"}`}>{formatDate(session.date)}</h1>
+            {session.location && <p className={`text-sm mt-0.5 ${isActive ? "text-primary-200" : "text-slate-500 dark:text-slate-400"}`}>📍 {session.location}</p>}
+            {session.notes && <p className={`text-xs mt-1 ${isActive ? "text-primary-300" : "text-slate-400 dark:text-slate-500"}`}>{session.notes}</p>}
           </div>
-          <div className={`text-right ${isActive ? "text-primary-200" : "text-slate-400"}`}>
-            <p className={`text-2xl font-bold ${isActive ? "text-white" : "text-slate-700"}`}>{players.length}</p>
+          <div className={`text-right ${isActive ? "text-primary-200" : "text-slate-400 dark:text-slate-500"}`}>
+            <p className={`text-2xl font-bold ${isActive ? "text-white" : "text-slate-700 dark:text-slate-200"}`}>{players.length}</p>
             <p className="text-xs">pemain</p>
           </div>
         </div>
-        <div className={`mt-3 flex gap-4 text-xs ${isActive ? "text-primary-200" : "text-slate-400"}`}>
+        <div className={`mt-3 flex gap-4 text-xs ${isActive ? "text-primary-200" : "text-slate-400 dark:text-slate-500"}`}>
           <span>{matches.length} match</span>
           <span>{completedMatches.length} selesai</span>
           <span>{matches.length - completedMatches.length} pending</span>
@@ -211,12 +211,12 @@ function SessionDetailInner() {
       {/* Share + Undo row */}
       <div className="flex gap-2">
         <button onClick={handleCopyReadOnly}
-          className="flex items-center gap-1.5 text-xs text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-2 hover:border-slate-300 transition-colors">
+          className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
           {copied ? "✓ Disalin" : "🔗 Bagikan"}
         </button>
         {isActive && !isReadOnly && lastCompleted && (
           <button onClick={handleUndoLastScore} disabled={undoing}
-            className="flex items-center gap-1.5 text-xs text-slate-500 bg-white border border-slate-200 rounded-xl px-3 py-2 hover:border-amber-300 hover:text-amber-600 transition-colors disabled:opacity-50">
+            className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 hover:border-amber-300 dark:hover:border-amber-700 hover:text-amber-600 dark:hover:text-amber-400 transition-colors disabled:opacity-50">
             {undoing ? "..." : "↩ Undo Skor #" + lastCompleted.match_number}
           </button>
         )}
@@ -224,31 +224,31 @@ function SessionDetailInner() {
 
       {/* Active actions */}
       {isActive && !isReadOnly && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 space-y-3">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Generate Jadwal</p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4 space-y-3">
+          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Generate Jadwal</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Total match</label>
+              <label className="text-xs text-slate-400 dark:text-slate-500 block mb-1">Total match</label>
               <input type="number" min={1} max={100} value={numMatchesWanted}
                 onChange={(e) => setNumMatchesWanted(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-slate-700 dark:text-slate-100" />
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Lapangan</label>
+              <label className="text-xs text-slate-400 dark:text-slate-500 block mb-1">Lapangan</label>
               <input type="number" min={1} max={10} value={numCourts}
                 onChange={(e) => setNumCourts(Math.max(1, parseInt(e.target.value) || 1))}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400" />
+                className="w-full border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary-400 dark:bg-slate-700 dark:text-slate-100" />
             </div>
           </div>
           {(() => {
             const p = calcSchedulePreview(players.length, numMatchesWanted, numCourts);
             return (
-              <div className="bg-slate-50 rounded-xl px-4 py-3 grid grid-cols-2 gap-y-1.5 text-xs">
-                <div className="flex justify-between"><span className="text-slate-400">Lapangan dipakai</span><span className="font-medium text-slate-700">{p.courtsUsed}</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Ronde</span><span className="font-medium text-slate-700">{p.rounds}</span></div>
-                <div className="flex justify-between"><span className="text-slate-400">Match/pemain</span><span className="font-medium text-slate-700">~{p.avgMatchesPerPlayer.toFixed(1)}</span></div>
+              <div className="bg-slate-50 dark:bg-slate-700/50 rounded-xl px-4 py-3 grid grid-cols-2 gap-y-1.5 text-xs">
+                <div className="flex justify-between"><span className="text-slate-400 dark:text-slate-500">Lapangan dipakai</span><span className="font-medium text-slate-700 dark:text-slate-200">{p.courtsUsed}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400 dark:text-slate-500">Ronde</span><span className="font-medium text-slate-700 dark:text-slate-200">{p.rounds}</span></div>
+                <div className="flex justify-between"><span className="text-slate-400 dark:text-slate-500">Match/pemain</span><span className="font-medium text-slate-700 dark:text-slate-200">~{p.avgMatchesPerPlayer.toFixed(1)}</span></div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Istirahat/ronde</span>
+                  <span className="text-slate-400 dark:text-slate-500">Istirahat/ronde</span>
                   <span className={`font-medium ${p.canRest ? "text-green-600" : "text-amber-500"}`}>
                     {p.canRest ? `${p.restingPerRound} pemain` : "tidak ada"}
                   </span>
@@ -256,14 +256,14 @@ function SessionDetailInner() {
               </div>
             );
           })()}
-          {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          {error && <p className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">{error}</p>}
           <div className="flex gap-2">
             <button onClick={handleGenerateRandom} disabled={generating || players.length < 4}
               className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-50">
               {generating ? "Generating..." : "Generate Jadwal"}
             </button>
             <button onClick={() => setShowAddMatch(true)}
-              className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-medium hover:bg-slate-200">
+              className="px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600">
               Manual
             </button>
           </div>
@@ -280,12 +280,12 @@ function SessionDetailInner() {
             </button>
           ) : (
             <button onClick={handleReopen}
-              className="flex-1 py-3 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200">
+              className="flex-1 py-3 rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-600">
               Buka Kembali
             </button>
           )}
           <button onClick={handleDeleteSession}
-            className="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-400 text-sm hover:border-red-200 hover:text-red-400 transition-colors">
+            className="px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 text-sm hover:border-red-200 hover:text-red-400 transition-colors">
             Hapus
           </button>
         </div>
@@ -297,10 +297,10 @@ function SessionDetailInner() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+      <div className="flex gap-1 bg-slate-100 dark:bg-slate-700 p-1 rounded-xl">
         {tabs.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${tab === t.key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+            className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${tab === t.key ? "bg-white dark:bg-slate-600 text-slate-800 dark:text-slate-100 shadow-sm" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}>
             {t.label}
           </button>
         ))}
@@ -311,15 +311,15 @@ function SessionDetailInner() {
         <div className="space-y-2.5">
           <div className="flex justify-end">
             <button onClick={handleDownloadMatchHistory}
-              className="text-xs text-slate-400 hover:text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-1.5">
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1.5">
               Download JPG
             </button>
           </div>
-          <div ref={matchHistoryRef} className="space-y-2 bg-slate-50 rounded-xl p-2.5">
+          <div ref={matchHistoryRef} className="space-y-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-2.5">
             {matches.length === 0 ? (
-              <div className="bg-white rounded-xl p-10 text-center">
-                <p className="text-slate-400 text-sm">Belum ada match.</p>
-                {isActive && !isReadOnly && <p className="text-slate-300 text-xs mt-1">Generate jadwal atau tambah manual di atas.</p>}
+              <div className="bg-white dark:bg-slate-800 rounded-xl p-10 text-center">
+                <p className="text-slate-400 dark:text-slate-500 text-sm">Belum ada match.</p>
+                {isActive && !isReadOnly && <p className="text-slate-300 dark:text-slate-600 text-xs mt-1">Generate jadwal atau tambah manual di atas.</p>}
               </div>
             ) : (
               matches.map((m) => (
@@ -332,7 +332,7 @@ function SessionDetailInner() {
           </div>
           {isActive && !isReadOnly && matches.length > 0 && (
             <button onClick={() => setShowAddMatch(true)}
-              className="w-full py-3 rounded-xl border border-dashed border-slate-300 text-slate-400 text-sm hover:border-primary-400 hover:text-primary-600 transition-colors">
+              className="w-full py-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 text-sm hover:border-primary-400 hover:text-primary-600 transition-colors">
               + Tambah Match Manual
             </button>
           )}
@@ -341,19 +341,19 @@ function SessionDetailInner() {
 
       {/* Tab: Ranking */}
       {tab === "ranking" && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
           <div className="flex items-center justify-between mb-4">
-            <p className="font-semibold text-slate-800 text-sm">Ranking Sesi</p>
+            <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm">Ranking Sesi</p>
             <button onClick={handleDownloadRanking}
-              className="text-xs text-slate-400 hover:text-slate-600 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1">
+              className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-2.5 py-1">
               Download JPG
             </button>
           </div>
           {completedMatches.length === 0 ? (
-            <div className="text-center py-8"><p className="text-slate-400 text-sm">Belum ada match selesai</p></div>
+            <div className="text-center py-8"><p className="text-slate-400 dark:text-slate-500 text-sm">Belum ada match selesai</p></div>
           ) : (
-            <div ref={rankingRef} className="bg-white rounded-xl p-1">
-              <p className="text-xs text-slate-400 mb-3">{session.date}{session.location ? ` · ${session.location}` : ""}</p>
+            <div ref={rankingRef} className="bg-white dark:bg-slate-800 rounded-xl p-1">
+              <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">{session.date}{session.location ? ` · ${session.location}` : ""}</p>
               <RankingTable rankings={rankings} />
             </div>
           )}
@@ -362,8 +362,8 @@ function SessionDetailInner() {
 
       {/* Tab: Pairs */}
       {tab === "pairs" && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-4">
-          <p className="font-semibold text-slate-800 text-sm mb-4">Statistik Pasangan</p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
+          <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm mb-4">Statistik Pasangan</p>
           <PartnershipStatsTable partnerships={partnerships} />
         </div>
       )}
@@ -371,17 +371,17 @@ function SessionDetailInner() {
       {/* Tab: Players */}
       {tab === "players" && (
         <div className="space-y-3">
-          <div className="bg-white rounded-2xl border border-slate-100 p-4">
-            <p className="font-semibold text-slate-800 text-sm mb-3">Pemain ({players.length})</p>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
+            <p className="font-semibold text-slate-800 dark:text-slate-100 text-sm mb-3">Pemain ({players.length})</p>
             {players.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-4">Belum ada pemain</p>
+              <p className="text-slate-400 dark:text-slate-500 text-sm text-center py-4">Belum ada pemain</p>
             ) : (
               <div className="space-y-1.5">
                 {players.map((p) => (
-                  <div key={p.id} className="flex items-center justify-between bg-slate-50 rounded-lg px-3 py-2.5">
-                    <span className="text-sm text-slate-700 font-medium">{p.name}</span>
+                  <div key={p.id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800/50 rounded-lg px-3 py-2.5">
+                    <span className="text-sm text-slate-700 dark:text-slate-200 font-medium">{p.name}</span>
                     {isActive && !isReadOnly && (
-                      <button onClick={() => handleRemovePlayer(p.id)} className="text-xs text-slate-300 hover:text-red-400 transition-colors">Hapus</button>
+                      <button onClick={() => handleRemovePlayer(p.id)} className="text-xs text-slate-300 dark:text-slate-600 hover:text-red-400 transition-colors">Hapus</button>
                     )}
                   </div>
                 ))}
@@ -389,18 +389,18 @@ function SessionDetailInner() {
             )}
           </div>
           {isActive && !isReadOnly && (
-            <div className="bg-white rounded-2xl border border-slate-100 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-4">
               {!showAddPlayer ? (
                 <button onClick={() => setShowAddPlayer(true)}
-                  className="w-full py-2.5 rounded-xl border border-dashed border-slate-300 text-slate-400 text-sm hover:border-primary-400 hover:text-primary-600 transition-colors">
+                  className="w-full py-2.5 rounded-xl border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 dark:text-slate-500 text-sm hover:border-primary-400 hover:text-primary-600 transition-colors">
                   + Tambah Pemain
                 </button>
               ) : (
                 <div className="space-y-3">
-                  <p className="text-sm font-semibold text-slate-700">Tambah Pemain</p>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">Tambah Pemain</p>
                   <PlayerCombobox allPlayers={allPlayers} selectedIds={players.map((p) => p.id)}
                     onAdd={handleAddPlayer} onRemove={() => {}} placeholder="Cari atau tambah pemain..." />
-                  <button onClick={() => setShowAddPlayer(false)} className="text-xs text-slate-400 hover:text-slate-600">Tutup</button>
+                  <button onClick={() => setShowAddPlayer(false)} className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">Tutup</button>
                 </div>
               )}
             </div>

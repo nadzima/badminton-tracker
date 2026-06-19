@@ -76,12 +76,12 @@ export default function PlayerCombobox({
             return (
               <span
                 key={id}
-                className="inline-flex items-center gap-1 bg-primary-100 text-primary-800 text-sm px-3 py-1 rounded-full font-medium"
+                className="inline-flex items-center gap-1 bg-primary-100 dark:bg-primary-900/30 text-primary-800 dark:text-primary-300 text-sm px-3 py-1 rounded-full font-medium"
               >
                 {label}
                 <button
                   onClick={() => onRemove(id)}
-                  className="ml-1 text-primary-600 hover:text-red-500 font-bold leading-none"
+                  className="ml-1 text-primary-600 dark:text-primary-400 hover:text-red-500 font-bold leading-none"
                 >
                   ×
                 </button>
@@ -100,19 +100,19 @@ export default function PlayerCombobox({
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           placeholder={placeholder}
-          className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          className="w-full border border-slate-300 dark:border-slate-600 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100"
         />
 
         {open && (filtered.length > 0 || showAddNew) && (
           <div
             ref={dropRef}
-            className="absolute top-full left-0 right-0 z-50 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto"
+            className="absolute top-full left-0 right-0 z-50 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-52 overflow-y-auto"
           >
             {filtered.map((p) => (
               <button
                 key={p.id}
                 onMouseDown={(e) => { e.preventDefault(); handleSelect(p); }}
-                className="w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 text-slate-700 first:rounded-t-xl"
+                className="w-full text-left px-4 py-2.5 text-sm hover:bg-primary-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 first:rounded-t-xl"
               >
                 {p.name}
               </button>
@@ -120,7 +120,7 @@ export default function PlayerCombobox({
             {showAddNew && (
               <button
                 onMouseDown={(e) => { e.preventDefault(); handleAddNew(); }}
-                className="w-full text-left px-4 py-2.5 text-sm text-primary-700 font-medium hover:bg-primary-50 border-t border-slate-100 last:rounded-b-xl"
+                className="w-full text-left px-4 py-2.5 text-sm text-primary-700 dark:text-primary-400 font-medium hover:bg-primary-50 dark:hover:bg-slate-700 border-t border-slate-100 dark:border-slate-700 last:rounded-b-xl"
               >
                 ➕ Tambah &quot;{query.trim()}&quot; sebagai pemain baru
               </button>
