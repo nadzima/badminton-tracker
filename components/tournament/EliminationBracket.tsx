@@ -109,9 +109,9 @@ export default function EliminationBracket({
           key={slot.slot}
           match={match}
           players={players}
-          isReadOnly={isReadOnly}
-          onScoreSubmit={onScoreSubmit}
-          onDelete={onDeleteMatch}
+          sessionStatus={isReadOnly ? "completed" : "active"}
+          onScoreSubmit={isReadOnly ? async () => {} : onScoreSubmit}
+          onDelete={isReadOnly ? undefined : onDeleteMatch}
         />
       );
     }

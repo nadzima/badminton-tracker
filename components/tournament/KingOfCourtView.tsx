@@ -152,9 +152,9 @@ export default function KingOfCourtView({
                     <MatchCard
                       match={activeMatch}
                       players={players}
-                      isReadOnly={isReadOnly}
-                      onScoreSubmit={handleScoreSubmit}
-                      onDelete={onDeleteMatch}
+                      sessionStatus={isReadOnly ? "completed" : "active"}
+                      onScoreSubmit={isReadOnly ? async () => {} : handleScoreSubmit}
+                      onDelete={isReadOnly ? undefined : onDeleteMatch}
                     />
                   ) : canStart ? (
                     <button
@@ -261,9 +261,9 @@ export default function KingOfCourtView({
                 key={match.id}
                 match={match}
                 players={players}
-                isReadOnly={true}
-                onScoreSubmit={onScoreSubmit}
-                onDelete={onDeleteMatch}
+                sessionStatus="completed"
+                onScoreSubmit={async () => {}}
+                onDelete={undefined}
               />
             ))}
           </div>

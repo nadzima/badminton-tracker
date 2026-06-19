@@ -165,9 +165,9 @@ export default function RoundRobinView({
                           key={slot.matchNumber}
                           match={match}
                           players={players}
-                          isReadOnly={isReadOnly}
-                          onScoreSubmit={onScoreSubmit}
-                          onDelete={onDeleteMatch}
+                          sessionStatus={isReadOnly ? "completed" : "active"}
+                          onScoreSubmit={isReadOnly ? async () => {} : onScoreSubmit}
+                          onDelete={isReadOnly ? undefined : onDeleteMatch}
                         />
                       );
                     }

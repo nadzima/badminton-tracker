@@ -158,9 +158,9 @@ export default function BeruguView({
                         <MatchCard
                           match={match}
                           players={players}
-                          isReadOnly={isReadOnly}
-                          onScoreSubmit={onScoreSubmit}
-                          onDelete={onDeleteMatch}
+                          sessionStatus={isReadOnly ? "completed" : "active"}
+                          onScoreSubmit={isReadOnly ? async () => {} : onScoreSubmit}
+                          onDelete={isReadOnly ? undefined : onDeleteMatch}
                         />
                       ) : isReadOnly ? (
                         <p className="text-sm text-slate-400 dark:text-slate-500 italic">
